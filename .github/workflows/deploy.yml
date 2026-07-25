@@ -20,17 +20,7 @@ env:
   S3_BUCKET: atomic-ai-frontend-764847372158-us-east-1-an
   CLOUDFRONT_DISTRIBUTION_ID: E2F7KW3768U7AQ
 
-  ECS_CLUSTER: atomic-ai-cluster
-
-  GATEWAY_ECR_REPOSITORY: gateway
-  AUTH_ECR_REPOSITORY: auth-service
-  CHAT_ECR_REPOSITORY: chat-service
-  AGENT_ECR_REPOSITORY: agent-service
-
-  GATEWAY_ECS_SERVICE: gateway-service
-  AUTH_ECS_SERVICE: auth-service
-  CHAT_ECS_SERVICE: chat-service
-  AGENT_ECS_SERVICE: agent-service
+  ECS_CLUSTER: backend
 
 jobs:
   frontend:
@@ -64,14 +54,16 @@ jobs:
       shell: bash
       run: |
         if grep -R "localhost:8000" dist/assets; then
-          echo "Production bundle still contains localhost:8000"
+          echo "ERROR: Production bundle contains localhost:8000"
           exit 1
         fi
 
         if grep -R "/public/logo.png" dist/assets; then
-          echo "Production bundle still contains /public/logo.png"
+          echo "ERROR: Production bundle contains /public/logo.png"
           exit 1
         fi
+
+        echo "Frontend bundle verification passed."
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v6
@@ -82,7 +74,9 @@ jobs:
 
     - name: Upload frontend to S3
       run: |
-        aws s3 sync dist "s3://${S3_BUCKET}" --delete
+        aws s3 sync dist "s3://${S3_BUCKET}" \
+          --delete \
+          --region "${AWS_REGION}"
 
     - name: Invalidate CloudFront cache
       run: |
@@ -99,28 +93,28 @@ jobs:
       matrix:
         include:
         - name: gateway
-          context: Server
+          ecr_repository: gateway
+          ecs_service: gateway-service
           dockerfile: Server/gateway/Dockerfile
-          repository_env: GATEWAY_ECR_REPOSITORY
-          service_env: GATEWAY_ECS_SERVICE
+          context: Server
 
         - name: auth
-          context: Server
+          ecr_repository: auth-service
+          ecs_service: auth-service
           dockerfile: Server/services/auth/Dockerfile
-          repository_env: AUTH_ECR_REPOSITORY
-          service_env: AUTH_ECS_SERVICE
+          context: Server
 
         - name: chat
-          context: Server
+          ecr_repository: chat-service
+          ecs_service: chat-service
           dockerfile: Server/services/chat/Dockerfile
-          repository_env: CHAT_ECR_REPOSITORY
-          service_env: CHAT_ECS_SERVICE
+          context: Server
 
         - name: agent
-          context: Server
+          ecr_repository: agent-service
+          ecs_service: agent-service
           dockerfile: Server/services/agent/Dockerfile
-          repository_env: AGENT_ECR_REPOSITORY
-          service_env: AGENT_ECS_SERVICE
+          context: Server
 
     steps:
     - name: Checkout repository
@@ -133,85 +127,106 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Verify ECS cluster
+      shell: bash
+      run: |
+        STATUS=$(aws ecs describe-clusters \
+          --clusters "${ECS_CLUSTER}" \
+          --region "${AWS_REGION}" \
+          --query "clusters[0].status" \
+          --output text)
+
+        if [ "${STATUS}" != "ACTIVE" ]; then
+          echo "ERROR: ECS cluster '${ECS_CLUSTER}' not found or not active."
+          exit 1
+        fi
+
+        echo "ECS cluster '${ECS_CLUSTER}' is active."
+
+    - name: Verify ECS service
+      shell: bash
+      run: |
+        SERVICE_STATUS=$(aws ecs describe-services \
+          --cluster "${ECS_CLUSTER}" \
+          --services "${{ matrix.ecs_service }}" \
+          --region "${AWS_REGION}" \
+          --query "services[0].status" \
+          --output text)
+
+        if [ "${SERVICE_STATUS}" != "ACTIVE" ]; then
+          echo "ERROR: ECS service '${{ matrix.ecs_service }}' not found."
+          echo "Available services in cluster '${ECS_CLUSTER}':"
+
+          aws ecs list-services \
+            --cluster "${ECS_CLUSTER}" \
+            --region "${AWS_REGION}" \
+            --query "serviceArns[]" \
+            --output table
+
+          exit 1
+        fi
+
+        echo "ECS service '${{ matrix.ecs_service }}' is active."
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Resolve service variables
-      id: vars
-      shell: bash
-      run: |
-        case "${{ matrix.name }}" in
-          gateway)
-            echo "repository=${GATEWAY_ECR_REPOSITORY}" >> "$GITHUB_OUTPUT"
-            echo "service=${GATEWAY_ECS_SERVICE}" >> "$GITHUB_OUTPUT"
-            ;;
-          auth)
-            echo "repository=${AUTH_ECR_REPOSITORY}" >> "$GITHUB_OUTPUT"
-            echo "service=${AUTH_ECS_SERVICE}" >> "$GITHUB_OUTPUT"
-            ;;
-          chat)
-            echo "repository=${CHAT_ECR_REPOSITORY}" >> "$GITHUB_OUTPUT"
-            echo "service=${CHAT_ECS_SERVICE}" >> "$GITHUB_OUTPUT"
-            ;;
-          agent)
-            echo "repository=${AGENT_ECR_REPOSITORY}" >> "$GITHUB_OUTPUT"
-            echo "service=${AGENT_ECS_SERVICE}" >> "$GITHUB_OUTPUT"
-            ;;
-          *)
-            echo "Unknown service"
-            exit 1
-            ;;
-        esac
-
     - name: Build and push Docker image
-      id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: ${{ steps.vars.outputs.repository }}
+        ECR_REPOSITORY: ${{ matrix.ecr_repository }}
         IMAGE_TAG: ${{ github.sha }}
+      shell: bash
       run: |
-        IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        IMAGE_SHA="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+        echo "Building ${IMAGE_SHA}"
 
         docker build \
           --file "${{ matrix.dockerfile }}" \
-          --tag "${IMAGE_URI}" \
+          --tag "${IMAGE_SHA}" \
+          --tag "${IMAGE_LATEST}" \
           "${{ matrix.context }}"
 
-        docker push "${IMAGE_URI}"
+        docker push "${IMAGE_SHA}"
+        docker push "${IMAGE_LATEST}"
 
-        docker tag \
-          "${IMAGE_URI}" \
-          "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
-
-        docker push \
-          "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
-
-        echo "image=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+        echo "Docker image pushed successfully."
 
     - name: Force ECS service deployment
-      env:
-        ECS_SERVICE: ${{ steps.vars.outputs.service }}
+      shell: bash
       run: |
         aws ecs update-service \
           --cluster "${ECS_CLUSTER}" \
-          --service "${ECS_SERVICE}" \
-          --force-new-deployment
+          --service "${{ matrix.ecs_service }}" \
+          --force-new-deployment \
+          --region "${AWS_REGION}"
 
     - name: Wait for ECS service stability
-      env:
-        ECS_SERVICE: ${{ steps.vars.outputs.service }}
+      shell: bash
       run: |
+        echo "Waiting for '${{ matrix.ecs_service }}' to become stable..."
+
         aws ecs wait services-stable \
           --cluster "${ECS_CLUSTER}" \
-          --services "${ECS_SERVICE}"
+          --services "${{ matrix.ecs_service }}" \
+          --region "${AWS_REGION}"
 
-    - name: Show service status
-      env:
-        ECS_SERVICE: ${{ steps.vars.outputs.service }}
+    - name: Show ECS service status
+      shell: bash
       run: |
         aws ecs describe-services \
           --cluster "${ECS_CLUSTER}" \
-          --services "${ECS_SERVICE}" \
-          --query "services[0].{service:serviceName,status:status,running:runningCount,desired:desiredCount,taskDefinition:taskDefinition}" \
+          --services "${{ matrix.ecs_service }}" \
+          --region "${AWS_REGION}" \
+          --query "services[0].{
+            Service:serviceName,
+            Status:status,
+            Running:runningCount,
+            Pending:pendingCount,
+            Desired:desiredCount,
+            TaskDefinition:taskDefinition
+          }" \
           --output table
