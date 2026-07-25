@@ -70,7 +70,7 @@ const AtomicLogo = ({ state = "visible" }) => {
           {/* Logo image */}
           <div className="relative z-10 logo-entry">
             <img
-              src='../../../public/logo.png'
+              src='/logo.png'
               alt='Atomic AI Logo'
               className={`
                 w-[180px] md:w-[240px] object-contain

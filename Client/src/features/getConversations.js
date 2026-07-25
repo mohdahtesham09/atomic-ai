@@ -9,10 +9,10 @@ export const getConversations = async () => {
 
   inFlightPromise = (async () => {
     try {
-      const { data } = await api.get("/api/v1/chat/get-conversations");
+      const { data } = await api.get("/chat/get-conversations");
       return data?.data || data?.conversations || data;
     } catch (error) {
-      if (process.env.NODE_ENV !== "production") {
+      if (import.meta.env.DEV) {
         console.error(
           "Error fetching conversations:",
           error.response?.data || error.message

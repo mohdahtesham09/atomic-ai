@@ -3,7 +3,7 @@ import api from '../utils/axios'
 
 async function sendmessage(payload){
   try {
-    const {data} = await api.post("/api/agent/chat", payload)
+    const {data} = await api.post("/agent/chat", payload)
     return data
   } catch (error) {
     console.log(error)

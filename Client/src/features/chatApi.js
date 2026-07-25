@@ -112,7 +112,7 @@ export const sendChatMessage = async (payload) => {
   }
 
   try {
-    const { data } = await api.post("/api/v1/chat/message", body);
+    const { data } = await api.post("/chat/message", body);
     if (isDev) {
       console.debug("[chatApi] OK — agent:", data?.agent, "artifacts:", data?.artifacts?.length ?? 0);
     }

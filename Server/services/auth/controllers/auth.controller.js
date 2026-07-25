@@ -26,7 +26,9 @@ export const login = asyncHandler(async (req, res) => {
     }
   }
 
-  let user = await User.findOne({ $or: queryConditions }).sort({ createdAt: 1 });
+  let user = await User.findOne({ $or: queryConditions }).sort({
+    createdAt: 1,
+  });
 
   if (user) {
     let modified = false;
@@ -70,7 +72,9 @@ export const login = asyncHandler(async (req, res) => {
   const userIdStr = user._id.toString();
 
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[Auth] Resolved user: ${userIdStr} (firebaseUid: ${user.firebaseUid}, email: ${user.email})`);
+    console.log(
+      `[Auth] Resolved user: ${userIdStr} (firebaseUid: ${user.firebaseUid}, email: ${user.email})`,
+    );
   }
 
   const sessionId = crypto.randomUUID();
@@ -88,13 +92,13 @@ export const login = asyncHandler(async (req, res) => {
         provider: user.provider,
       }),
       "EX",
-      7 * 24 * 60 * 60
+      7 * 24 * 60 * 60,
     );
     await redis.set(
       `user-session-${userIdStr}`,
       sessionId,
       "EX",
-      7 * 24 * 60 * 60
+      7 * 24 * 60 * 60,
     );
   } catch (redisErr) {
     console.warn("[AuthService] Redis session save warning:", redisErr.message);
@@ -102,8 +106,9 @@ export const login = asyncHandler(async (req, res) => {
 
   res.cookie("session", sessionId, {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
+    path: "/"
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -191,9 +196,7 @@ export const deductCredits = asyncHandler(async (req, res) => {
   user.credits -= requiredCredits;
   await user.save();
 
-  const sessionId = await redis.get(
-    `user-session-${user._id.toString()}`
-  );
+  const sessionId = await redis.get(`user-session-${user._id.toString()}`);
 
   console.log("sessionId:", sessionId);
 
@@ -211,7 +214,7 @@ export const deductCredits = asyncHandler(async (req, res) => {
         planExpiresAt: user.planExpiresAt,
       }),
       "EX",
-      7 * 24 * 60 * 60
+      7 * 24 * 60 * 60,
     );
   }
 

@@ -10,7 +10,7 @@ import api from "../utils/axios";
  */
 const getCurrentUser = async () => {
   try {
-    const { data } = await api.get("/api/v1/me");
+    const { data } = await api.get("/me");
     return data?.user || data?.data || data;
   } catch (error) {
     if (error.response?.status === 401) {

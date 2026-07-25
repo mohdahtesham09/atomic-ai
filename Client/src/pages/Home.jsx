@@ -168,10 +168,14 @@ const Home = () => {
   const handleLogin = async (firebaseToken) => {
     try {
       if (!firebaseToken) return;
-      const { data } = await api.post("/api/v1/auth/login", { token: firebaseToken });
+      const { data } = await api.post("/auth/login", { token: firebaseToken });
       dispatch(setUserData(data?.data || data?.user || data));
-    } catch (err) {
-      if (isDev) console.error("[Home] Login error:", err.message);
+    } catch (error) {
+      console.error("Login failed", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
     }
   };
 
