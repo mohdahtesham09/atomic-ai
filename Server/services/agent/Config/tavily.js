@@ -1,0 +1,10 @@
+import { TavilySearch } from "@langchain/tavily";
+
+export const searchTool = process.env.TAVILY_API_KEY
+  ? new TavilySearch({
+      maxResults: 5,
+      topic: "general",
+      includeImages: true,
+      apiKey: process.env.TAVILY_API_KEY,
+    })
+  : null;
