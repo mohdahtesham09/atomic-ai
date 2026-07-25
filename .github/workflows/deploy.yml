@@ -16,13 +16,14 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
-
   S3_BUCKET: atomic-ai-frontend-764847372158-us-east-1-an
   CLOUDFRONT_DISTRIBUTION_ID: E2F7KW3768U7AQ
-
   ECS_CLUSTER: backend
 
 jobs:
+  # =====================================================
+  # FRONTEND: React/Vite -> S3 -> CloudFront
+  # =====================================================
   frontend:
     name: Deploy frontend
     runs-on: ubuntu-latest
@@ -73,17 +74,22 @@ jobs:
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Upload frontend to S3
+      shell: bash
       run: |
         aws s3 sync dist "s3://${S3_BUCKET}" \
           --delete \
           --region "${AWS_REGION}"
 
     - name: Invalidate CloudFront cache
+      shell: bash
       run: |
         aws cloudfront create-invalidation \
           --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
           --paths "/*"
 
+  # =====================================================
+  # BACKEND: Docker -> ECR -> ECS
+  # =====================================================
   backend:
     name: Deploy ${{ matrix.name }}
     runs-on: ubuntu-latest
@@ -173,16 +179,16 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build and push Docker image
+      shell: bash
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: ${{ matrix.ecr_repository }}
         IMAGE_TAG: ${{ github.sha }}
-      shell: bash
       run: |
         IMAGE_SHA="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
 
-        echo "Building ${IMAGE_SHA}"
+        echo "Building image: ${IMAGE_SHA}"
 
         docker build \
           --file "${{ matrix.dockerfile }}" \
@@ -190,7 +196,10 @@ jobs:
           --tag "${IMAGE_LATEST}" \
           "${{ matrix.context }}"
 
+        echo "Pushing commit image..."
         docker push "${IMAGE_SHA}"
+
+        echo "Pushing latest image..."
         docker push "${IMAGE_LATEST}"
 
         echo "Docker image pushed successfully."
@@ -198,25 +207,35 @@ jobs:
     - name: Force ECS service deployment
       shell: bash
       run: |
+        echo "Deploying ${{ matrix.ecs_service }}..."
+
         aws ecs update-service \
           --cluster "${ECS_CLUSTER}" \
           --service "${{ matrix.ecs_service }}" \
           --force-new-deployment \
-          --region "${AWS_REGION}"
+          --region "${AWS_REGION}" \
+          --output json
 
     - name: Wait for ECS service stability
+      timeout-minutes: 5
+      continue-on-error: true
       shell: bash
       run: |
-        echo "Waiting for '${{ matrix.ecs_service }}' to become stable..."
+        echo "Waiting up to 5 minutes for '${{ matrix.ecs_service }}'..."
 
         aws ecs wait services-stable \
           --cluster "${ECS_CLUSTER}" \
           --services "${{ matrix.ecs_service }}" \
           --region "${AWS_REGION}"
 
+        echo "${{ matrix.ecs_service }} is stable."
+
     - name: Show ECS service status
+      if: always()
       shell: bash
       run: |
+        echo "Current status of ${{ matrix.ecs_service }}:"
+
         aws ecs describe-services \
           --cluster "${ECS_CLUSTER}" \
           --services "${{ matrix.ecs_service }}" \
