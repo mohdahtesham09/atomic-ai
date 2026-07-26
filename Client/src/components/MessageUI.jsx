@@ -116,9 +116,9 @@ const MessageUI = ({ message, index, onRegenerate, onRetry, isRegenerating }) =>
   if (isUser) {
     return (
       <div className="flex w-full justify-end group py-1">
-        <div className="relative max-w-[75%] flex flex-col items-end gap-1.5">
-          <div className={`rounded-[24px] rounded-tr-[8px] px-5 py-3 text-[15px] leading-relaxed shadow-sm ${isFailed ? "bg-red-50 ring-1 ring-red-200/60" : "bg-slate-100"} text-slate-800`}>
-            <div className="whitespace-pre-wrap break-words">{content}</div>
+        <div className="relative max-w-[88%] sm:max-w-[78%] md:max-w-[75%] flex flex-col items-end gap-1.5">
+          <div className={`rounded-[22px] sm:rounded-[24px] rounded-tr-[8px] px-4 sm:px-5 py-2.5 sm:py-3 text-[14px] sm:text-[15px] leading-relaxed shadow-sm ${isFailed ? "bg-red-50 ring-1 ring-red-200/60" : "bg-slate-100"} text-slate-800`}>
+            <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{content}</div>
           </div>
           {isFailed && onRetry && (
             <button
@@ -138,48 +138,48 @@ const MessageUI = ({ message, index, onRegenerate, onRetry, isRegenerating }) =>
   // Assistant Message UI
   return (
     <div
-      className="group relative flex w-full justify-start py-4"
+      className="group relative flex w-full justify-start py-2 sm:py-4 min-w-0"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="w-full max-w-[880px] text-[15.5px] leading-8 text-slate-700">
+      <div className="w-full max-w-[880px] min-w-0 text-[14px] sm:text-[15.5px] leading-7 sm:leading-8 text-slate-700 break-words overflow-hidden">
         {/* ── Main Answer Text ─────────────────────────────────────────────── */}
         <ReactMarkdown
           components={{
-            h1: ({ children }) => <h1 className="mb-5 mt-8 text-[26px] font-bold text-slate-900 leading-tight tracking-tight first:mt-0">{children}</h1>,
-            h2: ({ children }) => <h2 className="mb-4 mt-8 text-[20px] font-bold text-slate-900 leading-snug tracking-tight first:mt-0">{children}</h2>,
-            h3: ({ children }) => <h3 className="mb-3 mt-6 text-[17px] font-semibold text-slate-900 first:mt-0">{children}</h3>,
-            p: ({ children }) => <p className="mb-5 leading-[1.8] text-slate-700 last:mb-0">{children}</p>,
-            ul: ({ children }) => <ul className="mb-6 list-disc space-y-2.5 pl-6 text-slate-700 marker:text-slate-400">{children}</ul>,
-            ol: ({ children }) => <ol className="mb-6 list-decimal space-y-2.5 pl-6 text-slate-700 marker:text-slate-400">{children}</ol>,
-            li: ({ children }) => <li className="leading-relaxed pl-1">{children}</li>,
+            h1: ({ children }) => <h1 className="mb-4 sm:mb-5 mt-6 sm:mt-8 text-[20px] sm:text-[26px] font-bold text-slate-900 leading-tight tracking-tight first:mt-0 break-words">{children}</h1>,
+            h2: ({ children }) => <h2 className="mb-3 sm:mb-4 mt-6 sm:mt-8 text-[17px] sm:text-[20px] font-bold text-slate-900 leading-snug tracking-tight first:mt-0 break-words">{children}</h2>,
+            h3: ({ children }) => <h3 className="mb-2.5 sm:mb-3 mt-4 sm:mt-6 text-[15px] sm:text-[17px] font-semibold text-slate-900 first:mt-0 break-words">{children}</h3>,
+            p: ({ children }) => <p className="mb-4 sm:mb-5 leading-[1.7] sm:leading-[1.8] text-slate-700 last:mb-0 break-words">{children}</p>,
+            ul: ({ children }) => <ul className="mb-5 sm:mb-6 list-disc space-y-2 pl-5 sm:pl-6 text-slate-700 marker:text-slate-400">{children}</ul>,
+            ol: ({ children }) => <ol className="mb-5 sm:mb-6 list-decimal space-y-2 pl-5 sm:pl-6 text-slate-700 marker:text-slate-400">{children}</ol>,
+            li: ({ children }) => <li className="leading-relaxed pl-1 break-words">{children}</li>,
             strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
             code: ({ inline, className, children }) => {
               const match = /language-(\w+)/.exec(className || "");
               const language = match ? match[1] : "Text";
               if (!inline) {
                 return (
-                  <div className="my-6 overflow-hidden rounded-xl bg-[#FAFAFA] border border-slate-200/80 shadow-sm">
-                    <div className="flex items-center justify-between bg-slate-100/60 px-4 py-2.5 border-b border-slate-200/80">
-                      <span className="text-[12px] font-semibold uppercase tracking-wider text-slate-500">{language}</span>
+                  <div className="my-4 sm:my-6 overflow-hidden rounded-xl bg-[#FAFAFA] border border-slate-200/80 shadow-sm max-w-full">
+                    <div className="flex items-center justify-between bg-slate-100/60 px-3 sm:px-4 py-2 border-b border-slate-200/80">
+                      <span className="text-[11px] sm:text-[12px] font-semibold uppercase tracking-wider text-slate-500">{language}</span>
                     </div>
-                    <div className="overflow-x-auto p-4">
-                      <code className="text-[14px] leading-[1.6] text-slate-800 font-mono block">{children}</code>
+                    <div className="overflow-x-auto p-3 sm:p-4 max-w-full">
+                      <code className="text-[13px] sm:text-[14px] leading-[1.6] text-slate-800 font-mono block whitespace-pre">{children}</code>
                     </div>
                   </div>
                 );
               }
               return (
-                <code className="rounded-md bg-slate-100/80 px-1.5 py-0.5 text-[13.5px] text-cyan-700 font-mono font-medium">{children}</code>
+                <code className="rounded-md bg-slate-100/80 px-1.5 py-0.5 text-[12.5px] sm:text-[13.5px] text-cyan-700 font-mono font-medium break-all">{children}</code>
               );
             },
             a: ({ href, children }) => (
-              <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-600 font-medium hover:text-cyan-700 hover:underline underline-offset-2">
+              <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-600 font-medium hover:text-cyan-700 hover:underline underline-offset-2 break-all">
                 {children}
               </a>
             ),
             blockquote: ({ children }) => (
-              <blockquote className="border-l-4 border-slate-200 pl-4 py-1 italic text-slate-500 my-5 bg-slate-50/50 rounded-r-lg">
+              <blockquote className="border-l-4 border-slate-200 pl-3 sm:pl-4 py-1 italic text-slate-500 my-4 sm:my-5 bg-slate-50/50 rounded-r-lg">
                 {children}
               </blockquote>
             ),

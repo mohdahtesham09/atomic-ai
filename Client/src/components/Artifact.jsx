@@ -263,6 +263,15 @@ const Artifact = ({
 
   return (
     <>
+      {/* ── Mobile backdrop overlay ─────────────────────────────────── */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[9997] xl:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ── Floating vertical tab ─────────────────────────────────────────── */}
       <button
         id="artifact-tab-btn"
@@ -276,7 +285,7 @@ const Artifact = ({
           border border-r-0 border-slate-200/80
           shadow-[0_16px_45px_rgba(148,163,184,0.22)]
           transition-all duration-300 hover:text-sky-500 hover:shadow-[0_20px_60px_rgba(14,165,233,0.20)]
-          ${isOpen ? (isExpanded ? "-translate-x-[760px] -translate-y-1/2" : "-translate-x-[460px] -translate-y-1/2") : "-translate-x-0 -translate-y-1/2"}
+          ${isOpen ? (isExpanded ? "-translate-x-[min(760px,100vw)] -translate-y-1/2" : "-translate-x-[min(460px,100vw)] -translate-y-1/2") : "-translate-x-0 -translate-y-1/2"}
           ${isDisabled
             ? "text-slate-400 opacity-50 cursor-pointer hover:bg-white hover:text-slate-500"
             : "text-slate-500 hover:bg-white hover:text-slate-900"
@@ -294,14 +303,14 @@ const Artifact = ({
       {/* ── Main panel ────────────────────────────────────────────────────── */}
       <aside
         className={`
-          fixed right-0 top-0 h-full z-[9998] flex-shrink-0
+          fixed right-0 top-0 h-full min-h-dvh z-[9998] flex-shrink-0
           flex flex-col overflow-hidden
           bg-gradient-to-br from-white via-sky-50/40 to-cyan-50/30 backdrop-blur-2xl
           border-l border-slate-200/80
           shadow-[-24px_0_80px_rgba(148,163,184,0.20)]
           transition-all duration-300 will-change-transform
           ${isOpen ? "translate-x-0" : "translate-x-full"}
-          ${isExpanded ? "w-[760px]" : "w-[460px]"}
+          w-full sm:w-[460px] ${isExpanded ? "xl:w-[760px]" : "w-full sm:w-[460px]"}
         `}
         aria-label="Artifact output panel"
         aria-hidden={!isOpen}

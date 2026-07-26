@@ -6,7 +6,7 @@ import {
   FiUser,
   FiMessageSquare,
 } from "react-icons/fi";
-import { PanelLeft, PencilLine, MoreHorizontal, Trash2, LogOut } from "lucide-react";
+import { PanelLeft, PencilLine, MoreHorizontal, Trash2, LogOut, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   clearConversations,
@@ -131,7 +131,7 @@ const SideBar = ({
       {/* ── Mobile backdrop overlay ─────────────────────────────────── */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 md:hidden"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -140,29 +140,41 @@ const SideBar = ({
       {/* ── Sidebar panel ───────────────────────────────────────────── */}
       <aside
         className={`
-          fixed md:relative top-0 left-0 h-screen w-[280px] shrink-0
+          fixed md:relative top-0 left-0 h-screen min-h-dvh w-[280px] max-w-[85vw] shrink-0
           bg-white border-r border-slate-200
-          flex flex-col overflow-hidden z-40
+          flex flex-col overflow-hidden z-50 md:z-40
           transition-transform duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : isSidebarOpen === false ? "-translate-x-full" : "-translate-x-full md:translate-x-0"}
         `}
         aria-label="Sidebar navigation"
       >
-        {/* ── HEADER ROW (64px) ────────────────────────────────────── */}
-        <div className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-slate-100 bg-white">
+        {/* ── HEADER ROW ────────────────────────────────────────── */}
+        <div className="h-16 shrink-0 flex items-center justify-between px-4 border-b border-slate-100 bg-white pt-[env(safe-area-inset-top,0px)]">
           <div className="flex items-center gap-2">
             <button
               id="sidebar-toggle-inner-btn"
               onClick={onToggle || onClose}
               title="Toggle sidebar"
-              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors hidden md:flex"
               aria-label="Toggle sidebar"
             >
               <PanelLeft size={17} />
             </button>
             <button
+              id="sidebar-mobile-close-btn"
+              onClick={onClose}
+              title="Close menu"
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors md:hidden"
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+            <button
               type="button"
-              onClick={onGoHome}
+              onClick={() => {
+                onGoHome?.();
+                onClose?.();
+              }}
               className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer"
             >
               <span className="text-sm font-bold text-slate-800 tracking-tight">
@@ -176,7 +188,10 @@ const SideBar = ({
 
           <button
             id="new-chat-pencil-btn"
-            onClick={handleNewChatClick}
+            onClick={(e) => {
+              handleNewChatClick(e);
+              onClose?.();
+            }}
             title="New chat"
             className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
             aria-label="New chat"

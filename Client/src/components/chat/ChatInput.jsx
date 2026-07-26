@@ -244,7 +244,7 @@ const ChatInput = ({
   const showFocusRing = isFocused && !isPanelOpen;
 
   return (
-    <div className='relative w-full max-w-3xl mx-auto px-4 sm:px-6'>
+    <div className='relative w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-6'>
       {/* form wrapper — enables type="submit" button + Enter via form submit */}
       <form onSubmit={handleSubmit} noValidate>
         <div className='relative' ref={containerRef}>

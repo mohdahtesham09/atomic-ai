@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { signInWithPopup } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
 import { FiMenu } from "react-icons/fi";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, PencilLine } from "lucide-react";
 import { auth, googleProvider } from "../utils/firebase";
 import api from "../utils/axios";
 import { useSelector, useDispatch } from "react-redux";
@@ -547,24 +547,24 @@ const Home = () => {
   // Render
   // ────────────────────────────────────────────────────────────────────────
   return (
-    <main className="relative h-screen w-full overflow-hidden bg-slate-950 font-sans antialiased text-slate-100">
+    <main className="relative h-screen min-h-dvh w-full overflow-hidden bg-slate-950 font-sans antialiased text-slate-100">
 
       {/* UNAUTHENTICATED STATE */}
       {!userData && (
-        <div className="relative z-10 flex h-screen w-full items-center justify-center p-6">
-          <section className="flex w-full max-w-md flex-col items-center gap-6 rounded-3xl bg-white/5 p-8 text-center backdrop-blur-xl border border-white/10 shadow-2xl">
+        <div className="relative z-10 flex min-h-dvh h-screen w-full items-center justify-center p-4 sm:p-6">
+          <section className="flex w-full max-w-md flex-col items-center gap-5 sm:gap-6 rounded-3xl bg-white/5 p-6 sm:p-8 text-center backdrop-blur-xl border border-white/10 shadow-2xl">
             <AtomicLogo state="visible" />
             <div className="space-y-2">
-              <h1 className="text-2xl font-bold text-white">Welcome to Atomic AI</h1>
-              <p className="text-sm text-slate-400">Sign in to access your chats, tools, and workspaces.</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Welcome to Atomic AI</h1>
+              <p className="text-xs sm:text-sm text-slate-400">Sign in to access your chats, tools, and workspaces.</p>
             </div>
             <button
               onClick={googleLogin}
               disabled={loading}
-              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-5 py-3 text-slate-900 font-semibold shadow-lg hover:bg-slate-100 transition-all duration-200 disabled:opacity-50"
+              className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 sm:px-5 py-3 text-slate-900 font-semibold shadow-lg hover:bg-slate-100 transition-all duration-200 disabled:opacity-50 active:scale-[0.98]"
             >
-              <FcGoogle className="text-xl" />
-              <span className="text-lg font-medium whitespace-nowrap">{loading ? "Signing in..." : "continue with google"}</span>
+              <FcGoogle className="text-xl shrink-0" />
+              <span className="text-sm sm:text-base font-medium whitespace-nowrap">{loading ? "Signing in..." : "Continue with Google"}</span>
             </button>
           </section>
         </div>
@@ -572,7 +572,7 @@ const Home = () => {
 
       {/* AUTHENTICATED */}
       {userData && (
-        <div className="relative z-10 flex h-screen w-full overflow-hidden">
+        <div className="relative z-10 flex min-h-dvh h-screen w-full overflow-hidden">
           <SideBar
             isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}
             userData={userData} isSidebarOpen={isSidebarOpen}
@@ -589,12 +589,43 @@ const Home = () => {
             <PanelLeft size={16} />
           </button>
 
-          <div className={`relative flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${shouldShowArtifact ? "mr-[460px]" : "mr-0"}`}>
-            <div className="relative z-40 flex items-center gap-3 px-4 py-3 border-b border-slate-100/80 bg-white/50 backdrop-blur-sm md:hidden flex-shrink-0">
-              <button onClick={() => setSidebarOpen(true)} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100/80 transition-all" aria-label="Open sidebar">
-                <FiMenu size={18} />
+          <div className={`relative flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-white transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${shouldShowArtifact ? "xl:mr-[460px]" : "mr-0"}`}>
+            <div
+              className="relative z-40 flex h-14 min-h-[56px] items-center justify-between gap-3 px-4 sm:px-6 md:hidden flex-shrink-0 pt-[env(safe-area-inset-top,0px)]"
+              style={{
+                backgroundColor: "rgba(255, 255, 255, 0.88)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                borderBottom: "1px solid rgba(148, 163, 184, 0.18)",
+                boxShadow: "0 4px 18px rgba(15, 23, 42, 0.04)"
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100/80 active:bg-slate-200/60 active:scale-95 transition-all cursor-pointer"
+                  aria-label="Open sidebar"
+                >
+                  <FiMenu size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGoHome}
+                  className="flex items-center gap-2 font-bold text-slate-800 text-sm tracking-tight hover:opacity-85 transition-opacity cursor-pointer"
+                >
+                  <span>Atomic AI</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-50 text-sky-600 border border-sky-200/80 font-semibold leading-none">
+                    free
+                  </span>
+                </button>
+              </div>
+              <button
+                onClick={handleNewChat}
+                className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-700 hover:bg-slate-100/80 active:bg-slate-200/60 active:scale-95 transition-all cursor-pointer"
+                aria-label="New chat"
+              >
+                <PencilLine size={18} />
               </button>
-              <span className="text-[14px] font-bold text-slate-700 flex-1">Atomic AI</span>
             </div>
 
             <div className="relative z-20 flex-1 flex flex-col overflow-hidden w-full h-full bg-white">
@@ -608,7 +639,7 @@ const Home = () => {
                 isLoading={loading}
                 conversationId={selectedConversation?._id || selectedConversation?.id}
               />
-              <div className="absolute bottom-10 left-0 right-0 z-30 pointer-events-none">
+              <div className="absolute bottom-2 sm:bottom-6 left-0 right-0 z-30 pointer-events-none pb-[env(safe-area-inset-bottom)] px-2 sm:px-4">
                 <div className="pointer-events-auto">
                   <ChatInput
                     value={message} onChange={setMessage}
