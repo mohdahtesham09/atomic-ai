@@ -13,24 +13,44 @@ redis.on("error", (err) => {
 
 const protect = async (req, res, next) => {
   try {
-    const sessionId = req.cookies?.session;
+    const cookieExists = Boolean(req.cookies?.session);
+    let redisConnected = redis.status === "ready";
 
-    if (!sessionId) {
+    if (!redisConnected && redis.status !== "connecting") {
+      try {
+        await redis.connect();
+        redisConnected = redis.status === "ready";
+      } catch (_) {
+        redisConnected = false;
+      }
+    }
+
+    const sessionId = req.cookies?.session;
+    let session = null;
+    let redisSessionFound = false;
+
+    if (sessionId && redisConnected) {
+      try {
+        session = await redis.get(`session:${sessionId}`);
+        redisSessionFound = Boolean(session);
+      } catch (_) {
+        session = null;
+        redisSessionFound = false;
+      }
+    }
+
+    console.log(
+      `[Auth] cookie exists: ${cookieExists}, redis connected: ${redisConnected}, redis session found: ${redisSessionFound}`
+    );
+
+    if (!cookieExists || !sessionId) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized: session not found",
       });
     }
 
-    let session = null;
-    try {
-      if (redis.status !== "ready" && redis.status !== "connecting") {
-        await redis.connect().catch(() => {});
-      }
-      session = await redis.get(`session-${sessionId}`).catch(() => null);
-    } catch (_) {}
-
-    if (!session) {
+    if (!redisSessionFound || !session) {
       return res.status(401).json({
         success: false,
         message: "Session expired or invalid",

@@ -31,7 +31,7 @@ async function runTests() {
 
   // 1. Inject session into Redis
   console.log("[SETUP] Injecting mock session into Redis...");
-  await redis.set(`session-${sessionId}`, JSON.stringify(mockUser), "EX", 3600);
+  await redis.set(`session:${sessionId}`, JSON.stringify(mockUser), "EX", 3600);
   console.log("[SETUP] ✅ Mock session injected\n");
 
   // Test 1: Auth gateway

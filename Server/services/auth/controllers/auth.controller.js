@@ -79,36 +79,36 @@ export const login = asyncHandler(async (req, res) => {
 
   const sessionId = crypto.randomUUID();
 
-  try {
-    await redis.set(
-      `session-${sessionId}`,
-      JSON.stringify({
-        _id: userIdStr,
-        userId: userIdStr,
-        firebaseUid: user.firebaseUid,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        provider: user.provider,
-      }),
-      "EX",
-      7 * 24 * 60 * 60,
-    );
-    await redis.set(
-      `user-session-${userIdStr}`,
-      sessionId,
-      "EX",
-      7 * 24 * 60 * 60,
-    );
-  } catch (redisErr) {
-    console.warn("[AuthService] Redis session save warning:", redisErr.message);
+  if (redis.status !== "ready" && redis.status !== "connecting") {
+    await redis.connect();
   }
+
+  await redis.set(
+    `session:${sessionId}`,
+    JSON.stringify({
+      _id: userIdStr,
+      userId: userIdStr,
+      firebaseUid: user.firebaseUid,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      provider: user.provider,
+    }),
+    "EX",
+    7 * 24 * 60 * 60,
+  );
+  await redis.set(
+    `user-session:${userIdStr}`,
+    sessionId,
+    "EX",
+    7 * 24 * 60 * 60,
+  );
 
   res.cookie("session", sessionId, {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    path: "/"
+    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -125,20 +125,24 @@ export const logout = asyncHandler(async (req, res) => {
 
   if (sessionId) {
     try {
-      const sessionData = await redis.get(`session-${sessionId}`);
+      if (redis.status !== "ready" && redis.status !== "connecting") {
+        await redis.connect().catch(() => {});
+      }
+      const sessionData = await redis.get(`session:${sessionId}`);
       if (sessionData) {
         const parsed = JSON.parse(sessionData);
         const uid = parsed._id || parsed.userId;
-        if (uid) await redis.del(`user-session-${uid}`);
+        if (uid) await redis.del(`user-session:${uid}`);
       }
-      await redis.del(`session-${sessionId}`);
+      await redis.del(`session:${sessionId}`);
     } catch (_) {}
   }
 
   res.clearCookie("session", {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "none",
+    path: "/",
   });
 
   return res.status(200).json({
@@ -196,13 +200,15 @@ export const deductCredits = asyncHandler(async (req, res) => {
   user.credits -= requiredCredits;
   await user.save();
 
-  const sessionId = await redis.get(`user-session-${user._id.toString()}`);
+  if (redis.status !== "ready" && redis.status !== "connecting") {
+    await redis.connect().catch(() => {});
+  }
 
-  console.log("sessionId:", sessionId);
+  const sessionId = await redis.get(`user-session:${user._id.toString()}`);
 
   if (sessionId) {
     await redis.set(
-      `session-${sessionId}`,
+      `session:${sessionId}`,
       JSON.stringify({
         userId: user._id,
         name: user.name,

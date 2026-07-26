@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import ConnectDb from './Config/db.js';
 import globalErrorHandler from './middleware/error.middleware.js';
 import router from './routes/auth.routes.js';
@@ -15,6 +16,7 @@ process.on("uncaughtException", (error) => {
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 app.use("/", router);
 
 const PORT = process.env.PORT || 8001;
