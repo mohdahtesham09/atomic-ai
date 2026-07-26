@@ -112,14 +112,15 @@ export const login = asyncHandler(async (req, res) => {
         "EX",
         7 * 24 * 60 * 60,
       );
-      sessionSaveSuccess = (res1 === "OK" || Boolean(res1)) && (res2 === "OK" || Boolean(res2));
+      sessionSaveSuccess =
+        (res1 === "OK" || Boolean(res1)) && (res2 === "OK" || Boolean(res2));
     } catch (redisErr) {
       sessionSaveSuccess = false;
     }
   }
 
   console.log(
-    `[Auth] redis connected: ${redisConnected}, session save success: ${sessionSaveSuccess}`
+    `[Auth] redis connected: ${redisConnected}, session save success: ${sessionSaveSuccess}`,
   );
 
   if (!redisConnected || !sessionSaveSuccess) {
@@ -130,7 +131,6 @@ export const login = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: "none",
-    path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
