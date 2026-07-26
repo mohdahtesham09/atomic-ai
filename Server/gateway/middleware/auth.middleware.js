@@ -1,15 +1,4 @@
-import Redis from "ioredis";
-
-const redis = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: process.env.REDIS_PORT || 6379,
-  lazyConnect: true,
-  retryStrategy: (times) => Math.min(times * 100, 3000),
-});
-
-redis.on("error", (err) => {
-  console.warn("[Gateway Redis Warning]:", err.message);
-});
+import redis from "../../shared/redis/redis.js";
 
 const protect = async (req, res, next) => {
   try {
@@ -27,20 +16,20 @@ const protect = async (req, res, next) => {
 
     const sessionId = req.cookies?.session;
     let session = null;
-    let redisSessionFound = false;
+    let sessionFound = false;
 
     if (sessionId && redisConnected) {
       try {
         session = await redis.get(`session:${sessionId}`);
-        redisSessionFound = Boolean(session);
+        sessionFound = Boolean(session);
       } catch (_) {
         session = null;
-        redisSessionFound = false;
+        sessionFound = false;
       }
     }
 
     console.log(
-      `[Auth] cookie exists: ${cookieExists}, redis connected: ${redisConnected}, redis session found: ${redisSessionFound}`
+      `[Auth] redis connected: ${redisConnected}, cookie exists: ${cookieExists}, session found: ${sessionFound}`
     );
 
     if (!cookieExists || !sessionId) {
@@ -50,7 +39,7 @@ const protect = async (req, res, next) => {
       });
     }
 
-    if (!redisSessionFound || !session) {
+    if (!sessionFound || !session) {
       return res.status(401).json({
         success: false,
         message: "Session expired or invalid",

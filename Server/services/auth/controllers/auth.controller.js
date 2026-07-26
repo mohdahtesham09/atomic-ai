@@ -79,30 +79,52 @@ export const login = asyncHandler(async (req, res) => {
 
   const sessionId = crypto.randomUUID();
 
-  if (redis.status !== "ready" && redis.status !== "connecting") {
-    await redis.connect();
+  let redisConnected = redis.status === "ready";
+  if (!redisConnected && redis.status !== "connecting") {
+    try {
+      await redis.connect();
+      redisConnected = redis.status === "ready";
+    } catch (_) {
+      redisConnected = false;
+    }
   }
 
-  await redis.set(
-    `session:${sessionId}`,
-    JSON.stringify({
-      _id: userIdStr,
-      userId: userIdStr,
-      firebaseUid: user.firebaseUid,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      provider: user.provider,
-    }),
-    "EX",
-    7 * 24 * 60 * 60,
+  let sessionSaveSuccess = false;
+  if (redisConnected) {
+    try {
+      const res1 = await redis.set(
+        `session:${sessionId}`,
+        JSON.stringify({
+          _id: userIdStr,
+          userId: userIdStr,
+          firebaseUid: user.firebaseUid,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          provider: user.provider,
+        }),
+        "EX",
+        7 * 24 * 60 * 60,
+      );
+      const res2 = await redis.set(
+        `user-session:${userIdStr}`,
+        sessionId,
+        "EX",
+        7 * 24 * 60 * 60,
+      );
+      sessionSaveSuccess = (res1 === "OK" || Boolean(res1)) && (res2 === "OK" || Boolean(res2));
+    } catch (redisErr) {
+      sessionSaveSuccess = false;
+    }
+  }
+
+  console.log(
+    `[Auth] redis connected: ${redisConnected}, session save success: ${sessionSaveSuccess}`
   );
-  await redis.set(
-    `user-session:${userIdStr}`,
-    sessionId,
-    "EX",
-    7 * 24 * 60 * 60,
-  );
+
+  if (!redisConnected || !sessionSaveSuccess) {
+    throw new ApiError(500, "Failed to save session in Redis");
+  }
 
   res.cookie("session", sessionId, {
     httpOnly: true,
