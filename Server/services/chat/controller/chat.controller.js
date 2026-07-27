@@ -428,7 +428,7 @@ export const sendMessageToAi = asyncHandler(async (req, res) => {
     content: userText
   });
 
-  const agentUrl = process.env.AGENT_SERVICE || "http://localhost:8003";
+  const agentUrl = process.env.AGENT_SERVICE || "http://agent:8003";
   let aiText = "";
   let agentSources = [];
   let agentImages = [];
